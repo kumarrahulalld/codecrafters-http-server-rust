@@ -18,7 +18,7 @@ fn main() {
                 let mut buf = [0; 512];
                 _stream.read(&mut buf).unwrap();
                 let request = str::from_utf8(&buf).unwrap();
-                let parts : Vec<&str> = request.split(' ').collect();
+                let parts : Vec<&str> = request.split("4221/").collect();
                 print!("{:?}",parts);
                 let url = parts[1];
                 print!("{}",url);
