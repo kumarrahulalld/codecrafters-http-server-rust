@@ -1,7 +1,7 @@
 use std::io::Write;
 #[allow(unused_imports)]
 use std::net::TcpListener;
-
+use core::str;
 fn main() {
     // You can use print statements as follows for debugging, they'll be visible when running tests.
     println!("Logs from your program will appear here!");
@@ -14,7 +14,17 @@ fn main() {
         match stream {
             Ok(mut _stream) => {
                 println!("accepted new connection");
-                _stream.write("HTTP/1.1 200 OK\r\n\r\n".as_bytes()).unwrap();
+                let buf = [0; 512];
+                let request = str::from_utf8(&buf).unwrap();
+                let parts : Vec<&str> = request.split(' ').collect();
+                let url = parts[1];
+                if url.is_empty() 
+                {
+                    _stream.write("HTTP/1.1 200 OK\r\n\r\n".as_bytes()).unwrap();
+                }
+                else {
+                    _stream.write("HTTP/1.1 404 Not Found\r\n\r\n".as_bytes()).unwrap();
+                }
             }
             Err(e) => {
                 println!("error: {}", e);
