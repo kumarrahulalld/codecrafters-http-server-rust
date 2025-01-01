@@ -19,7 +19,7 @@ fn main() {
                 _stream.read(&mut buf).unwrap();
                 let request = str::from_utf8(&buf).unwrap();
                 print!("request {:?}",request);
-                let parts : Vec<&str> = request.split("4221/").collect();
+                let parts : Vec<&str> = request.split(" ").collect();
                 print!("parts {:?}",parts);
                 let url = parts[0];
                 print!("url {:?}",url);
