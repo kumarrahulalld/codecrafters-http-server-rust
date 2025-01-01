@@ -18,6 +18,8 @@ fn main() {
                 let request = str::from_utf8(&buf).unwrap();
                 let parts : Vec<&str> = request.split(' ').collect();
                 let url = parts[1];
+                print!("{:?}",parts);
+                print!("{}",url);
                 if url.is_empty() 
                 {
                     _stream.write("HTTP/1.1 200 OK\r\n\r\n".as_bytes()).unwrap();
