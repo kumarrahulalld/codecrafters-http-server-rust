@@ -18,10 +18,11 @@ fn main() {
                 let mut buf = [0; 512];
                 _stream.read(&mut buf).unwrap();
                 let request = str::from_utf8(&buf).unwrap();
+                print!("request {:?}",request);
                 let parts : Vec<&str> = request.split("4221/").collect();
                 print!("parts {:?}",parts);
                 let url = parts[0];
-                print!("url {}",url);
+                print!("url {:?}",url);
                 if url.is_empty() 
                 {
                     _stream.write("HTTP/1.1 200 OK\r\n\r\n".as_bytes()).unwrap();
