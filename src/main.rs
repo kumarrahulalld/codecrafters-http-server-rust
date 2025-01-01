@@ -15,6 +15,7 @@ fn main() {
             Ok(mut _stream) => {
                 println!("accepted new connection");
                 let buf = [0; 512];
+                _stream.read(&mut buf);
                 let request = str::from_utf8(&buf).unwrap();
                 let parts : Vec<&str> = request.split(' ').collect();
                 print!("{:?}",parts);
