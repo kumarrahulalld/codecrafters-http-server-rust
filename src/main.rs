@@ -17,8 +17,8 @@ fn main() {
                 let buf = [0; 512];
                 let request = str::from_utf8(&buf).unwrap();
                 let parts : Vec<&str> = request.split(' ').collect();
-                let url = parts[1];
                 print!("{:?}",parts);
+                let url = parts[1];
                 print!("{}",url);
                 if url.is_empty() 
                 {
