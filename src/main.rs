@@ -20,7 +20,7 @@ fn main() {
                 let request = str::from_utf8(&buf).unwrap();
                 let parts : Vec<&str> = request.split("4221/").collect();
                 print!("{:?}",parts);
-                let url = parts[1];
+                let url = parts[0];
                 print!("{}",url);
                 if url.is_empty() 
                 {
