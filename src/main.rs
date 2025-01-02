@@ -39,7 +39,7 @@ fn main() {
                     let request_parts:Vec<&str> = request.split("\r\n").collect();
                     println!("request parts {:?}",request_parts);
                     for part in request_parts  {
-                        println!("part value {:?}",part);
+                        println!("part {:?}",part);
                         if part.to_ascii_lowercase().starts_with("user-agent")
                         {
                             let content: Vec<&str> = part.split(" ").collect();
