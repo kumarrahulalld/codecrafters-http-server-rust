@@ -20,7 +20,7 @@ fn main() {
                 let request = str::from_utf8(&buf).unwrap();
                 let parts : Vec<&str> = request.split(" ").collect();
                 let url = parts[1];
-                print!("url base {:?}",url);
+                println!("url base {:?}",url);
                 if url.eq_ignore_ascii_case("/") 
                 {
                     _stream.write("HTTP/1.1 200 OK\r\n\r\n".as_bytes()).unwrap();
@@ -29,9 +29,9 @@ fn main() {
                 {
                     let string_contents : Vec<&str> = url.split("/echo").collect();
                     let content = string_contents[0];
-                    print!("contents value {:?}",string_contents);
-                    print!("content {:?}",content);
-                    print!("url {:?}",url);
+                    println!("contents value {:?}",string_contents);
+                    println!("content {:?}",content);
+                    println!("url {:?}",url);
                     _stream.write(format!("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: {}\r\n\r\n{}",content.len(),content).as_bytes()).unwrap();
                 }
                 else {
