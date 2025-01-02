@@ -27,8 +27,8 @@ fn main() {
                 }
                 else if url.starts_with("/echo")
                 {
-                    let string_contents : Vec<&str> = url.split("/echo").collect();
-                    let content = string_contents[0];
+                    let string_contents : Vec<&str> = url.split("/echo/").collect();
+                    let content = string_contents[1];
                     println!("contents value {:?}",string_contents);
                     println!("content {:?}",content);
                     println!("url {:?}",url);
