@@ -28,7 +28,7 @@ fn main() {
                 {
                     let string_contents : Vec<&str> = url.split("/echo").collect();
                     let content = string_contents[0];
-                    _stream.write(format!("$HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: {}\r\n\r\n{}",content.len(),content).as_bytes()).unwrap();
+                    _stream.write(format!("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: {}\r\n\r\n{}",content.len(),content).as_bytes()).unwrap();
                 }
                 else {
                     _stream.write("HTTP/1.1 404 Not Found\r\n\r\n".as_bytes()).unwrap();
