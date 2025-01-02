@@ -34,6 +34,22 @@ fn main() {
                     println!("url {:?}",url);
                     _stream.write(format!("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: {}\r\n\r\n{}",content.len(),content).as_bytes()).unwrap();
                 }
+                else if url.starts_with("/user-agent")
+                {
+                    let request_parts:Vec<&str> = request.split("\r\n").collect();
+                    println!("request parts {:?}",request_parts);
+                    for part in request_parts  {
+                        println!("part {:?}",part);
+                        if part.to_ascii_lowercase().starts_with("user-agent")
+                        {
+                            let content: Vec<&str> = part.split(" ").collect();
+                            println!("{:?}",content);
+                            let header_value= content[1];
+                            println!("{:?}",header_value);
+                            _stream.write(format!("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: {}\r\n\r\n{}",header_value.len(),header_value).as_bytes()).unwrap();
+                        }
+                    }
+                }
                 else {
                     _stream.write("HTTP/1.1 404 Not Found\r\n\r\n".as_bytes()).unwrap();
                 }
