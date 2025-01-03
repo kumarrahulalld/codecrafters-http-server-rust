@@ -63,8 +63,8 @@ fn main() {
                     println!("url {:?}",url);
                     if Path::new(file_name).exists() 
                     {
-                        let file_content:&str;
-                        File::open(file_name).unwrap().read_to_string(file_content);
+                        let mut file_content:String = String::new();
+                        let _ = File::open(file_name).unwrap().read_to_string(&mut file_content);
                         println!("file content{:?}",file_content);
                         _stream.write(format!("HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: {}\r\n\r\n{}",file_content.len(),file_content).as_bytes()).unwrap();
                     }
