@@ -6,10 +6,11 @@ use std::net::TcpListener;
 use core::str;
 use std::path::Path;
 use std::thread;
+use std::env;
 fn main() {
     // You can use print statements as follows for debugging, they'll be visible when running tests.
     println!("Logs from your program will appear here!");
-
+    let args: Vec<String> = env::args().collect();
     // Uncomment this block to pass the first stage
     //
     let listener = TcpListener::bind("127.0.0.1:4221").unwrap();
@@ -17,6 +18,7 @@ fn main() {
     for stream in listener.incoming() {
         match stream {
             Ok(mut _stream) => {
+                let args_clone = args.clone();
                 thread::spawn(move || {
                 println!("accepted new connection");
                 let mut buf = [0; 512];
@@ -57,11 +59,14 @@ fn main() {
                 else if url.starts_with("/files")
                 {
                     let string_contents : Vec<&str> = url.split("/files/").collect();
-                    let file_name = string_contents[1];
+                    let mut file_name = string_contents[1].to_string();
                     println!("contents value {:?}",string_contents);
                     println!("fileName {:?}",file_name);
                     println!("url {:?}",url);
-                    if Path::new(file_name).exists() 
+                    let dir = &args_clone[2];
+                    file_name = dir.to_owned() + "/" + &file_name;
+                    println!("dir {:?}",dir);
+                    if Path::new(file_name.as_str()).exists() 
                     {
                         let mut file_content:String = String::new();
                         let _ = File::open(file_name).unwrap().read_to_string(&mut file_content);
