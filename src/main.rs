@@ -1,8 +1,10 @@
+use std::fs::File;
 use std::io::Write;
 use std::io::Read;
 #[allow(unused_imports)]
 use std::net::TcpListener;
 use core::str;
+use std::path::Path;
 use std::thread;
 fn main() {
     // You can use print statements as follows for debugging, they'll be visible when running tests.
@@ -50,6 +52,24 @@ fn main() {
                             println!("{:?}",header_value);
                             _stream.write(format!("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: {}\r\n\r\n{}",header_value.len(),header_value).as_bytes()).unwrap();
                         }
+                    }
+                }
+                else if url.starts_with("/files")
+                {
+                    let string_contents : Vec<&str> = url.split("/files/").collect();
+                    let file_name = string_contents[1];
+                    println!("contents value {:?}",string_contents);
+                    println!("fileName {:?}",file_name);
+                    println!("url {:?}",url);
+                    if Path::new(file_name).exists() 
+                    {
+                        let file_content:&str;
+                        File::open(file_name).unwrap().read_to_string(file_content);
+                        println!("file content{:?}",file_content);
+                        _stream.write(format!("HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: {}\r\n\r\n{}",file_content.len(),file_content).as_bytes()).unwrap();
+                    }
+                    else {
+                        _stream.write("HTTP/1.1 404 Not Found\r\n\r\n".as_bytes()).unwrap();
                     }
                 }
                 else {
