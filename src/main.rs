@@ -14,6 +14,7 @@ fn main() {
     for stream in listener.incoming() {
         match stream {
             Ok(mut _stream) => {
+                thread::spawn(|| {
                 println!("accepted new connection");
                 let mut buf = [0; 512];
                 _stream.read(&mut buf).unwrap();
@@ -53,6 +54,7 @@ fn main() {
                 else {
                     _stream.write("HTTP/1.1 404 Not Found\r\n\r\n".as_bytes()).unwrap();
                 }
+            });
             }
             Err(e) => {
                 println!("error: {}", e);
