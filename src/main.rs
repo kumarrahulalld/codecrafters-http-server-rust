@@ -3,6 +3,7 @@ use std::io::Read;
 #[allow(unused_imports)]
 use std::net::TcpListener;
 use core::str;
+use std::thread;
 fn main() {
     // You can use print statements as follows for debugging, they'll be visible when running tests.
     println!("Logs from your program will appear here!");
@@ -14,7 +15,7 @@ fn main() {
     for stream in listener.incoming() {
         match stream {
             Ok(mut _stream) => {
-                thread::spawn(|| {
+                thread::spawn(move || {
                 println!("accepted new connection");
                 let mut buf = [0; 512];
                 _stream.read(&mut buf).unwrap();
