@@ -22,7 +22,6 @@ fn main() {
                 thread::spawn(move || {
                 println!("accepted new connection");
                 let mut buf = [0; 512];
-                _stream.read(&mut buf).unwrap();
                 let bytes_read = _stream.read(&mut buf).unwrap(); // Read into the buffer and get the number of bytes read
                 let request = str::from_utf8(&buf[..bytes_read]).unwrap();
                 let parts : Vec<&str> = request.split(" ").collect();
