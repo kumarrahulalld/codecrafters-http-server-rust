@@ -26,6 +26,7 @@ fn main() {
                 let request = str::from_utf8(&buf).unwrap();
                 let parts : Vec<&str> = request.split(" ").collect();
                 let url = parts[1];
+                let method = parts[0];
                 println!("url base {:?}",url);
                 if url.eq_ignore_ascii_case("/") 
                 {
@@ -66,6 +67,17 @@ fn main() {
                     let dir = &args_clone[2];
                     file_name = dir.to_owned() + "/" + &file_name;
                     println!("dir {:?}",dir);
+                    if method.eq_ignore_ascii_case("POST")
+                    {
+                        let request_parts:Vec<&str> = request.split("\r\n").collect();
+                        let file_body = request_parts[request_parts.len()-1];
+                        println!("request parts {:?}",request_parts);
+                        println!("file body {:?}",file_body);
+                        let mut created_file = File::create_new(file_name).unwrap();
+                        let _ = created_file.write_all(file_body.as_bytes()).unwrap();
+                        _stream.write("HTTP/1.1 201 Created\r\n\r\n".as_bytes()).unwrap();
+                    }
+                    else {
                     if Path::new(file_name.as_str()).exists() 
                     {
                         let mut file_content:String = String::new();
@@ -76,6 +88,7 @@ fn main() {
                     else {
                         _stream.write("HTTP/1.1 404 Not Found\r\n\r\n".as_bytes()).unwrap();
                     }
+                }
                 }
                 else {
                     _stream.write("HTTP/1.1 404 Not Found\r\n\r\n".as_bytes()).unwrap();
