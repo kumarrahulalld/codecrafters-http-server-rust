@@ -145,13 +145,12 @@ fn write_to_file(path: &str, content: &str) -> std::io::Result<()> {
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();
-    if args.len() < 3 {
-        //eprintln!("Usage: {} <address> <root_dir>", args[0]);
-        return;
-    }
-
     let address = "127.0.0.1:4221".to_string();
-    let root_dir = &args[2];
+    let mut root_dir = "";
+    if args.len() >= 3
+    {
+    root_dir = &args[2];
+    }
     let listener = TcpListener::bind("127.0.0.1:4221").expect("Failed to bind to address");
     println!("Server is running on {}", address);
     let server = HttpServer::new(&address, root_dir);
