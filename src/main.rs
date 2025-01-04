@@ -17,11 +17,7 @@ impl HttpServer {
         }
     }
 
-    fn start(&self) {
-        println!("Server is not running on {}", self.address);
-        let listener = TcpListener::bind(&self.address).expect("Failed to bind to address");
-        println!("Server is running on {}", self.address);
-
+    fn start(&self, listener:&TcpListener) {
         let root_dir = Arc::new(self.root_dir.clone());
         for stream in listener.incoming() {
             match stream {
@@ -150,12 +146,14 @@ fn write_to_file(path: &str, content: &str) -> std::io::Result<()> {
 fn main() {
     let args: Vec<String> = std::env::args().collect();
     if args.len() < 3 {
-        eprintln!("Usage: {} <address> <root_dir>", args[0]);
+        //eprintln!("Usage: {} <address> <root_dir>", args[0]);
         return;
     }
 
     let address = "127.0.0.1:4221".to_string();
     let root_dir = &args[2];
+    let listener = TcpListener::bind(&address).expect("Failed to bind to address");
+    println!("Server is running on {}", address);
     let server = HttpServer::new(&address, root_dir);
-    server.start();
+    server.start(&listener);
 }
