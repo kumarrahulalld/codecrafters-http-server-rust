@@ -23,7 +23,8 @@ fn main() {
                 println!("accepted new connection");
                 let mut buf = [0; 512];
                 _stream.read(&mut buf).unwrap();
-                let request = str::from_utf8(&buf).unwrap();
+                let bytes_read = _stream.read(&mut buf).unwrap(); // Read into the buffer and get the number of bytes read
+                let request = str::from_utf8(&buf[..bytes_read]).unwrap();
                 let parts : Vec<&str> = request.split(" ").collect();
                 let url = parts[1];
                 let method = parts[0];
@@ -70,7 +71,7 @@ fn main() {
                     if method.eq_ignore_ascii_case("POST")
                     {
                         let request_parts:Vec<&str> = request.split("\r\n").collect();
-                        let file_body = request_parts[request_parts.len()-1];
+                        let mut file_body = request_parts[request_parts.len()-1];
                         println!("request parts {:?}",request_parts);
                         println!("file body {:?}",file_body);
                         let mut created_file = File::create_new(file_name).unwrap();
