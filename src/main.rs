@@ -1,7 +1,6 @@
 use std::fs::{File, OpenOptions};
 use std::io::{Read, Write};
 use std::net::{TcpListener, TcpStream};
-use std::path::Path;
 use std::sync::Arc;
 use std::thread;
 
@@ -154,9 +153,9 @@ fn main() {
         return;
     }
 
-    let address = "127.0.0.1:4221";
+    let address = "127.0.0.1:4221".to_string();
     let root_dir = &args[2];
 
-    let server = HttpServer::new(address, root_dir);
+    let server = HttpServer::new(&address, root_dir);
     server.start();
 }
