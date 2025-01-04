@@ -1,103 +1,162 @@
-use std::fs::File;
-use std::io::Write;
-use std::io::Read;
-#[allow(unused_imports)]
-use std::net::TcpListener;
-use core::str;
+use std::fs::{File, OpenOptions};
+use std::io::{Read, Write};
+use std::net::{TcpListener, TcpStream};
 use std::path::Path;
+use std::sync::Arc;
 use std::thread;
-use std::env;
-fn main() {
-    // You can use print statements as follows for debugging, they'll be visible when running tests.
-    println!("Logs from your program will appear here!");
-    let args: Vec<String> = env::args().collect();
-    // Uncomment this block to pass the first stage
-    //
-    let listener = TcpListener::bind("127.0.0.1:4221").unwrap();
-    
-    for stream in listener.incoming() {
-        match stream {
-            Ok(mut _stream) => {
-                let args_clone = args.clone();
-                thread::spawn(move || {
-                println!("accepted new connection");
-                let mut buf = [0; 512];
-                let bytes_read = _stream.read(&mut buf).unwrap(); // Read into the buffer and get the number of bytes read
-                let request = str::from_utf8(&buf[..bytes_read]).unwrap();
-                let parts : Vec<&str> = request.split(" ").collect();
-                let url = parts[1];
-                let method = parts[0];
-                println!("url base {:?}",url);
-                if url.eq_ignore_ascii_case("/") 
-                {
-                    _stream.write("HTTP/1.1 200 OK\r\n\r\n".as_bytes()).unwrap();
+
+struct HttpServer {
+    address: String,
+    root_dir: String,
+}
+
+impl HttpServer {
+    fn new(address: &str, root_dir: &str) -> Self {
+        Self {
+            address: address.to_string(),
+            root_dir: root_dir.to_string(),
+        }
+    }
+
+    fn start(&self) {
+        let listener = TcpListener::bind(&self.address).expect("Failed to bind to address");
+        println!("Server is running on {}", self.address);
+
+        let root_dir = Arc::new(self.root_dir.clone());
+        for stream in listener.incoming() {
+            match stream {
+                Ok(stream) => {
+                    let root_dir = Arc::clone(&root_dir);
+                    thread::spawn(move || handle_client(stream, root_dir));
                 }
-                else if url.starts_with("/echo")
-                {
-                    let string_contents : Vec<&str> = url.split("/echo/").collect();
-                    let content = string_contents[1];
-                    println!("contents value {:?}",string_contents);
-                    println!("content {:?}",content);
-                    println!("url {:?}",url);
-                    _stream.write(format!("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: {}\r\n\r\n{}",content.len(),content).as_bytes()).unwrap();
-                }
-                else if url.starts_with("/user-agent")
-                {
-                    let request_parts:Vec<&str> = request.split("\r\n").collect();
-                    println!("request parts {:?}",request_parts);
-                    for part in request_parts  {
-                        println!("part {:?}",part);
-                        if part.to_ascii_lowercase().starts_with("user-agent")
-                        {
-                            let content: Vec<&str> = part.split(" ").collect();
-                            println!("{:?}",content);
-                            let header_value= content[1];
-                            println!("{:?}",header_value);
-                            _stream.write(format!("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: {}\r\n\r\n{}",header_value.len(),header_value).as_bytes()).unwrap();
-                        }
-                    }
-                }
-                else if url.starts_with("/files")
-                {
-                    let string_contents : Vec<&str> = url.split("/files/").collect();
-                    let mut file_name = string_contents[1].to_string();
-                    println!("contents value {:?}",string_contents);
-                    println!("fileName {:?}",file_name);
-                    println!("url {:?}",url);
-                    let dir = &args_clone[2];
-                    file_name = dir.to_owned() + "/" + &file_name;
-                    println!("dir {:?}",dir);
-                    if method.eq_ignore_ascii_case("POST")
-                    {
-                        let request_parts:Vec<&str> = request.split("\r\n").collect();
-                        let mut file_body = request_parts[request_parts.len()-1];
-                        println!("request parts {:?}",request_parts);
-                        println!("file body {:?}",file_body);
-                        let mut created_file = File::create_new(file_name).unwrap();
-                        let _ = created_file.write_all(file_body.as_bytes()).unwrap();
-                        _stream.write("HTTP/1.1 201 Created\r\n\r\n".as_bytes()).unwrap();
-                    }
-                    else {
-                    if Path::new(file_name.as_str()).exists() 
-                    {
-                        let mut file_content:String = String::new();
-                        let _ = File::open(file_name).unwrap().read_to_string(&mut file_content);
-                        println!("file content {:?}",file_content);
-                        _stream.write(format!("HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: {}\r\n\r\n{}",file_content.len(),file_content).as_bytes()).unwrap();
-                    }
-                    else {
-                        _stream.write("HTTP/1.1 404 Not Found\r\n\r\n".as_bytes()).unwrap();
-                    }
-                }
-                }
-                else {
-                    _stream.write("HTTP/1.1 404 Not Found\r\n\r\n".as_bytes()).unwrap();
-                }
-            });
-            }
-            Err(e) => {
-                println!("error: {}", e);
+                Err(e) => eprintln!("Failed to accept connection: {}", e),
             }
         }
     }
+}
+
+fn handle_client(mut stream: TcpStream, root_dir: Arc<String>) {
+    let mut buffer = [0; 1024];
+    match stream.read(&mut buffer) {
+        Ok(bytes_read) => {
+            if let Ok(request) = String::from_utf8(buffer[..bytes_read].to_vec()) {
+                let response = handle_request(&request, &root_dir);
+                stream.write_all(response.as_bytes()).unwrap_or_else(|e| {
+                    eprintln!("Failed to write response: {}", e);
+                });
+            }
+        }
+        Err(e) => eprintln!("Failed to read from stream: {}", e),
+    }
+}
+
+fn handle_request(request: &str, root_dir: &str) -> String {
+    let (method, url) = parse_request(request);
+    match url {
+        "/" => respond_with_text("Welcome to the HTTP server!"),
+        path if path.starts_with("/echo/") => {
+            let content = path.trim_start_matches("/echo/");
+            respond_with_text(content)
+        }
+        path if path.starts_with("/user-agent") => {
+            if let Some(user_agent) = extract_user_agent(request) {
+                respond_with_text(&user_agent)
+            } else {
+                respond_with_status(400, "Bad Request")
+            }
+        }
+        path if path.starts_with("/files/") => {
+            let filename = path.trim_start_matches("/files/");
+            handle_file_request(method, filename, root_dir, request)
+        }
+        _ => respond_with_status(404, "Not Found"),
+    }
+}
+
+fn parse_request(request: &str) -> (&str, &str) {
+    let lines: Vec<&str> = request.lines().collect();
+    if let Some(first_line) = lines.get(0) {
+        let parts: Vec<&str> = first_line.split_whitespace().collect();
+        if parts.len() >= 2 {
+            return (parts[0], parts[1]);
+        }
+    }
+    ("", "")
+}
+
+fn extract_user_agent(request: &str) -> Option<String> {
+    request
+        .lines()
+        .find(|line| line.to_ascii_lowercase().starts_with("user-agent"))
+        .map(|line| line.split(": ").nth(1).unwrap_or("").to_string())
+}
+
+fn handle_file_request(method: &str, filename: &str, root_dir: &str, request: &str) -> String {
+    let file_path = format!("{}/{}", root_dir, filename);
+
+    match method {
+        "POST" => {
+            let body = request.split("\r\n\r\n").nth(1).unwrap_or("");
+            if let Err(e) = write_to_file(&file_path, body) {
+                eprintln!("Failed to write to file: {}", e);
+                respond_with_status(500, "Internal Server Error")
+            } else {
+                respond_with_status(201, "Created")
+            }
+        }
+        "GET" => {
+            if let Ok(content) = read_file(&file_path) {
+                respond_with_file(&content)
+            } else {
+                respond_with_status(404, "Not Found")
+            }
+        }
+        _ => respond_with_status(405, "Method Not Allowed"),
+    }
+}
+
+fn respond_with_text(content: &str) -> String {
+    format!(
+        "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: {}\r\n\r\n{}",
+        content.len(),
+        content
+    )
+}
+
+fn respond_with_file(content: &str) -> String {
+    format!(
+        "HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: {}\r\n\r\n{}",
+        content.len(),
+        content
+    )
+}
+
+fn respond_with_status(status: u16, message: &str) -> String {
+    format!("HTTP/1.1 {} {}\r\n\r\n", status, message)
+}
+
+fn read_file(path: &str) -> std::io::Result<String> {
+    let mut file = File::open(path)?;
+    let mut content = String::new();
+    file.read_to_string(&mut content)?;
+    Ok(content)
+}
+
+fn write_to_file(path: &str, content: &str) -> std::io::Result<()> {
+    let mut file = OpenOptions::new().create(true).write(true).open(path)?;
+    file.write_all(content.as_bytes())
+}
+
+fn main() {
+    let args: Vec<String> = std::env::args().collect();
+    if args.len() < 3 {
+        eprintln!("Usage: {} <address> <root_dir>", args[0]);
+        return;
+    }
+
+    let address = &args[1];
+    let root_dir = &args[2];
+
+    let server = HttpServer::new(address, root_dir);
+    server.start();
 }
