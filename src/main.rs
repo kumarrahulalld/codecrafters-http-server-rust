@@ -152,7 +152,7 @@ fn main() {
 
     let address = "127.0.0.1:4221".to_string();
     let root_dir = &args[2];
-    let listener = TcpListener::bind(&address).expect("Failed to bind to address");
+    let listener = TcpListener::bind("127.0.0.1:4221").expect("Failed to bind to address");
     println!("Server is running on {}", address);
     let server = HttpServer::new(&address, root_dir);
     server.start(&listener);
