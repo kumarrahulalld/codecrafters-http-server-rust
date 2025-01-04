@@ -154,7 +154,7 @@ fn main() {
         return;
     }
 
-    let address = &args[1];
+    let address = "127.0.0.1:4221";
     let root_dir = &args[2];
 
     let server = HttpServer::new(address, root_dir);
