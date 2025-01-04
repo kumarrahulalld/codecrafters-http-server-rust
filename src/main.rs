@@ -18,6 +18,7 @@ impl HttpServer {
     }
 
     fn start(&self) {
+        println!("Server is not running on {}", self.address);
         let listener = TcpListener::bind(&self.address).expect("Failed to bind to address");
         println!("Server is running on {}", self.address);
 
@@ -155,7 +156,6 @@ fn main() {
 
     let address = "127.0.0.1:4221".to_string();
     let root_dir = &args[2];
-
     let server = HttpServer::new(&address, root_dir);
     server.start();
 }
