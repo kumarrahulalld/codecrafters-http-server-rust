@@ -56,9 +56,9 @@ fn handle_request(request: &str, root_dir: &str) -> String {
             let content = path.trim_start_matches("/echo/");
             if let Some(content_encoding) = extract_accept_encoding(request) {
                 println!("content encoding {:?}",content_encoding);
-                if content_encoding.contains("gzip")
+                if content_encoding.contains(&"gzip".to_string())
                 {
-                respond_with_text_and_content_encoding(&content, &content_encoding)
+                respond_with_text_and_content_encoding(&content, &"gzip")
                 }
                 else {
                     respond_with_text(content)
@@ -100,11 +100,20 @@ fn extract_user_agent(request: &str) -> Option<String> {
         .map(|line| line.split(": ").nth(1).unwrap_or("").to_string())
 }
 
-fn extract_accept_encoding(request: &str) -> Option<String> {
+fn extract_accept_encoding(request: &str) -> Option<Vec<String>> {
     request
         .lines()
         .find(|line| line.to_ascii_lowercase().starts_with("accept-encoding"))
-        .map(|line| line.split(": ").nth(1).unwrap_or("").to_string())
+        .and_then(|line| {
+            line.split(": ")
+                .nth(1) // Get the value part of "Accept-Encoding: ...".
+                .map(|value| {
+                    value
+                        .split(',') // Split encodings by comma.
+                        .map(|s| s.trim().to_string()) // Trim and convert each encoding to a String.
+                        .collect::<Vec<String>>() // Collect into a Vec<String>.
+                })
+        })
 }
 
 fn handle_file_request(method: &str, filename: &str, root_dir: &str, request: &str) -> String {
