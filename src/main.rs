@@ -154,7 +154,7 @@ fn respond_with_text_and_content_encoding(content: &str,content_encoding: &str) 
     format!(
         "HTTP/1.1 200 OK\r\nContent-Type: text/plain \r\nContent-Encoding: {}\r\nContent-Length: {}\r\n\r\n{}",
         content_encoding,
-        format_hex_content.len(),
+        gzip_content.len(),
         format_hex_content
     )
 }
