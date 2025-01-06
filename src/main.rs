@@ -74,6 +74,23 @@ fn handle_request(request: &str, root_dir: &str, stream: &mut TcpStream) {
                 });
             }
         }
+        path if path.starts_with("/user-agent") => {
+            if let Some(user_agent) = extract_user_agent(request) {
+                let response = respond_with_text(&user_agent);
+                stream.write_all(response.as_bytes()).unwrap_or_else(|e| {
+                    eprintln!("Failed to write response: {}", e);
+                });
+            } else {
+                let response = respond_with_status(400, "Bad Request");
+                stream.write_all(response.as_bytes()).unwrap_or_else(|e| {
+                    eprintln!("Failed to write response: {}", e);
+                });
+            }
+        }
+        path if path.starts_with("/files/") => {
+            let filename = path.trim_start_matches("/files/");
+            handle_file_request(method, filename, root_dir, request, stream);
+        }
         _ => {
             let response = respond_with_status(404, "Not Found");
             stream.write_all(response.as_bytes()).unwrap_or_else(|e| {
@@ -94,6 +111,13 @@ fn parse_request(request: &str) -> (&str, &str) {
     ("", "")
 }
 
+fn extract_user_agent(request: &str) -> Option<String> {
+    request
+        .lines()
+        .find(|line| line.to_ascii_lowercase().starts_with("user-agent"))
+        .map(|line| line.split(": ").nth(1).unwrap_or("").to_string())
+}
+
 fn extract_accept_encoding(request: &str) -> Option<Vec<String>> {
     request
         .lines()
@@ -108,6 +132,47 @@ fn extract_accept_encoding(request: &str) -> Option<Vec<String>> {
                         .collect::<Vec<String>>() // Collect into a Vec<String>.
                 })
         })
+}
+
+fn handle_file_request(method: &str, filename: &str, root_dir: &str, request: &str, stream: &mut TcpStream) {
+    let file_path = format!("{}/{}", root_dir, filename);
+
+    match method {
+        "POST" => {
+            let body = request.split("\r\n\r\n").nth(1).unwrap_or("");
+            if let Err(e) = write_to_file(&file_path, body) {
+                eprintln!("Failed to write to file: {}", e);
+                let response = respond_with_status(500, "Internal Server Error");
+                stream.write_all(response.as_bytes()).unwrap_or_else(|e| {
+                    eprintln!("Failed to write response: {}", e);
+                });
+            } else {
+                let response = respond_with_status(201, "Created");
+                stream.write_all(response.as_bytes()).unwrap_or_else(|e| {
+                    eprintln!("Failed to write response: {}", e);
+                });
+            }
+        }
+        "GET" => {
+            if let Ok(content) = read_file(&file_path) {
+                let response = respond_with_file(&content);
+                stream.write_all(response.as_bytes()).unwrap_or_else(|e| {
+                    eprintln!("Failed to write response: {}", e);
+                });
+            } else {
+                let response = respond_with_status(404, "Not Found");
+                stream.write_all(response.as_bytes()).unwrap_or_else(|e| {
+                    eprintln!("Failed to write response: {}", e);
+                });
+            }
+        }
+        _ => {
+            let response = respond_with_status(405, "Method Not Allowed");
+            stream.write_all(response.as_bytes()).unwrap_or_else(|e| {
+                eprintln!("Failed to write response: {}", e);
+            });
+        }
+    }
 }
 
 fn respond_with_text(content: &str) -> String {
@@ -149,6 +214,26 @@ fn gzip_compress(input: &str) -> Vec<u8> {
 
 fn respond_with_status(status: u16, message: &str) -> String {
     format!("HTTP/1.1 {} {}\r\n\r\n", status, message)
+}
+
+fn respond_with_file(content: &str) -> String {
+    format!(
+        "HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: {}\r\n\r\n{}",
+        content.len(),
+        content
+    )
+}
+
+fn write_to_file(path: &str, content: &str) -> std::io::Result<()> {
+    let mut file = OpenOptions::new().create(true).write(true).open(path)?;
+    file.write_all(content.as_bytes())
+}
+
+fn read_file(path: &str) -> std::io::Result<String> {
+    let mut file = File::open(path)?;
+    let mut content = String::new();
+    file.read_to_string(&mut content)?;
+    Ok(content)
 }
 
 fn main() {
