@@ -5,6 +5,7 @@ use std::sync::Arc;
 use std::thread;
 use flate2::write::GzEncoder;
 use flate2::Compression;
+
 struct HttpServer {
     address: String,
     root_dir: String,
@@ -40,9 +41,9 @@ fn handle_client(mut stream: TcpStream, root_dir: Arc<String>) {
         Ok(bytes_read) => {
             if let Ok(request) = String::from_utf8(buffer[..bytes_read].to_vec()) {
                 let response = handle_request(&request, &root_dir);
-                stream.write_all(response.as_bytes()).unwrap_or_else(|e| {
-                    eprintln!("Failed to write response : {}", e);
-                });
+                if let Err(e) = stream.write_all(response.as_bytes()) {
+                    eprintln!("Failed to write response: {}", e);
+                }
             }
         }
         Err(e) => eprintln!("Failed to read from stream: {}", e),
@@ -56,12 +57,9 @@ fn handle_request(request: &str, root_dir: &str) -> String {
         path if path.starts_with("/echo/") => {
             let content = path.trim_start_matches("/echo/");
             if let Some(content_encoding) = extract_accept_encoding(request) {
-                println!("content encoding {:?}",content_encoding);
-                if content_encoding.contains(&"gzip".to_string())
-                {
-                respond_with_text_and_content_encoding(&content, &"gzip")
-                }
-                else {
+                if content_encoding.contains(&"gzip".to_string()) {
+                    respond_with_gzip(content)
+                } else {
                     respond_with_text(content)
                 }
             } else {
@@ -107,12 +105,12 @@ fn extract_accept_encoding(request: &str) -> Option<Vec<String>> {
         .find(|line| line.to_ascii_lowercase().starts_with("accept-encoding"))
         .and_then(|line| {
             line.split(": ")
-                .nth(1) // Get the value part of "Accept-Encoding: ...".
+                .nth(1)
                 .map(|value| {
                     value
-                        .split(',') // Split encodings by comma.
-                        .map(|s| s.trim().to_string()) // Trim and convert each encoding to a String.
-                        .collect::<Vec<String>>() // Collect into a Vec<String>.
+                        .split(',')
+                        .map(|s| s.trim().to_string())
+                        .collect::<Vec<String>>()
                 })
         })
 }
@@ -148,36 +146,21 @@ fn respond_with_text(content: &str) -> String {
         content
     )
 }
-fn respond_with_text_and_content_encoding(content: &str,content_encoding: &str) -> String {
-    let gzip_content = gzip_compress(content);
-    let format_hex_content = format_hex_block(&gzip_content);
+
+fn respond_with_gzip(content: &str) -> String {
+    let compressed = gzip_compress(content);
     format!(
-        "HTTP/1.1 200 OK\r\nContent-Type: text/plain \r\nContent-Encoding: {} \r\nContent-Length: {}\r\n\r\n{}",
-        content_encoding,
-        gzip_content.len(),
-        format_hex_content
-    )
+        "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Encoding: gzip\r\nContent-Length: {}\r\n\r\n",
+        compressed.len()
+    ) + &String::from_utf8_lossy(&compressed)
 }
+
 fn respond_with_file(content: &str) -> String {
     format!(
         "HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: {}\r\n\r\n{}",
         content.len(),
         content
     )
-}
-
-fn format_hex_block(bytes: &[u8]) -> String {
-    bytes
-        .chunks(8) // Group bytes into chunks of 8
-        .map(|chunk| {
-            chunk
-                .iter()
-                .map(|byte| format!("{:02X}", byte)) // Convert each byte to a two-digit uppercase hex
-                .collect::<Vec<_>>()
-                .join(" ") // Join bytes in a chunk with a space
-        })
-        .collect::<Vec<_>>()
-        .join(" ") // Join chunks with a newline
 }
 
 fn gzip_compress(input: &str) -> Vec<u8> {
@@ -205,11 +188,11 @@ fn write_to_file(path: &str, content: &str) -> std::io::Result<()> {
 fn main() {
     let args: Vec<String> = std::env::args().collect();
     let address = "127.0.0.1:4221".to_string();
-    let mut root_dir = "";
-    if args.len() >= 3
-    {
-    root_dir = &args[2];
-    }
-    let server = HttpServer::new(&address, root_dir);
+    let root_dir = if args.len() >= 2 {
+        args[1].clone()
+    } else {
+        ".".to_string()
+    };
+    let server = HttpServer::new(&address, &root_dir);
     server.start();
 }
