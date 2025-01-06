@@ -18,7 +18,7 @@ impl HttpServer {
     }
 
     fn start(&self) {
-        let listener = TcpListener::bind("127.0.0.1:4221").expect("Failed to bind to address");
+        let listener = TcpListener::bind(self.address).expect("Failed to bind to address");
         println!("Server is running on {}", self.address);
         let root_dir = Arc::new(self.root_dir.clone());
         for stream in listener.incoming() {
