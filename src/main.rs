@@ -3,7 +3,8 @@ use std::io::{Read, Write};
 use std::net::{TcpListener, TcpStream};
 use std::sync::Arc;
 use std::thread;
-
+use flate2::write::GzEncoder;
+use flate2::Compression;
 struct HttpServer {
     address: String,
     root_dir: String,
@@ -148,11 +149,12 @@ fn respond_with_text(content: &str) -> String {
     )
 }
 fn respond_with_text_and_content_encoding(content: &str,content_encoding: &str) -> String {
+    let gzip_content = gzip_compress(content);
     format!(
         "HTTP/1.1 200 OK\r\nContent-Type: text/plain \r\nContent-Encoding: {}\r\nContent-Length: {}\r\n\r\n{}",
         content_encoding,
-        content.len(),
-        content
+        gzip_content.len(),
+        gzip_content.iter().map(|byte| format!("{:02x}", byte)).collect::<String>()
     )
 }
 fn respond_with_file(content: &str) -> String {
@@ -161,6 +163,12 @@ fn respond_with_file(content: &str) -> String {
         content.len(),
         content
     )
+}
+
+fn gzip_compress(input: &str) -> Vec<u8> {
+    let mut encoder = GzEncoder::new(Vec::new(), Compression::default());
+    encoder.write_all(input.as_bytes()).expect("Failed to write to encoder");
+    encoder.finish().expect("Failed to finish compression")
 }
 
 fn respond_with_status(status: u16, message: &str) -> String {
