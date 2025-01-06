@@ -177,7 +177,7 @@ fn format_hex_block(bytes: &[u8]) -> String {
                 .join(" ") // Join bytes in a chunk with a space
         })
         .collect::<Vec<_>>()
-        .join("") // Join chunks with a newline
+        .join(" ") // Join chunks with a newline
 }
 
 fn gzip_compress(input: &str) -> Vec<u8> {
