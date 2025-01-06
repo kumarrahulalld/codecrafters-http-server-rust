@@ -54,7 +54,17 @@ fn handle_request(request: &str, root_dir: &str) -> String {
         "/" => respond_with_text("Welcome to the HTTP server"),
         path if path.starts_with("/echo/") => {
             let content = path.trim_start_matches("/echo/");
-            respond_with_text(content)
+            if let Some(content_encoding) = extract_accept_encoding(request) {
+                if content_encoding.eq_ignore_ascii_case("gzip")
+                {
+                respond_with_text_and_content_encoding(&content, &content_encoding)
+                }
+                else {
+                    respond_with_text(content)
+                }
+            } else {
+                respond_with_text(content)
+            }
         }
         path if path.starts_with("/user-agent") => {
             if let Some(user_agent) = extract_user_agent(request) {
@@ -89,6 +99,13 @@ fn extract_user_agent(request: &str) -> Option<String> {
         .map(|line| line.split(": ").nth(1).unwrap_or("").to_string())
 }
 
+fn extract_accept_encoding(request: &str) -> Option<String> {
+    request
+        .lines()
+        .find(|line| line.to_ascii_lowercase().starts_with("accept-encoding"))
+        .map(|line| line.split(": ").nth(1).unwrap_or("").to_string())
+}
+
 fn handle_file_request(method: &str, filename: &str, root_dir: &str, request: &str) -> String {
     let file_path = format!("{}/{}", root_dir, filename);
 
@@ -120,7 +137,14 @@ fn respond_with_text(content: &str) -> String {
         content
     )
 }
-
+fn respond_with_text_and_content_encoding(content: &str,content_encoding: &str) -> String {
+    format!(
+        "HTTP/1.1 200 OK\r\nContent-Type: text/plain Content-Encoding: {}\r\nContent-Length: {}\r\n\r\n{}",
+        content_encoding,
+        content.len(),
+        content
+    )
+}
 fn respond_with_file(content: &str) -> String {
     format!(
         "HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: {}\r\n\r\n{}",
