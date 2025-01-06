@@ -152,7 +152,7 @@ fn respond_with_text_and_content_encoding(content: &str,content_encoding: &str) 
     let gzip_content = gzip_compress(content);
     let format_hex_content = format_hex_block(&gzip_content);
     format!(
-        "HTTP/1.1 200 OK\r\nContent-Type: text/plain \r\nContent-Encoding: {}\r\nContent-Length: {}\r\n\r\n{}",
+        "HTTP/1.1 200 OK\r\nContent-Type: text/plain \r\nContent-Encoding: {} \r\nContent-Length: {}\r\n\r\n{}",
         content_encoding,
         gzip_content.len(),
         format_hex_content
@@ -177,7 +177,7 @@ fn format_hex_block(bytes: &[u8]) -> String {
                 .join(" ") // Join bytes in a chunk with a space
         })
         .collect::<Vec<_>>()
-        .join("\n") // Join chunks with a newline
+        .join("") // Join chunks with a newline
 }
 
 fn gzip_compress(input: &str) -> Vec<u8> {
