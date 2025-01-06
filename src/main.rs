@@ -55,6 +55,7 @@ fn handle_request(request: &str, root_dir: &str) -> String {
         path if path.starts_with("/echo/") => {
             let content = path.trim_start_matches("/echo/");
             if let Some(content_encoding) = extract_accept_encoding(request) {
+                println!("content encoding {:?}",content_encoding);
                 if content_encoding.eq_ignore_ascii_case("gzip")
                 {
                 respond_with_text_and_content_encoding(&content, &content_encoding)
