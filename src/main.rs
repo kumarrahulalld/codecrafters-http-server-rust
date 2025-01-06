@@ -40,7 +40,7 @@ fn handle_client(mut stream: TcpStream, root_dir: Arc<String>) {
             if let Ok(request) = String::from_utf8(buffer[..bytes_read].to_vec()) {
                 let response = handle_request(&request, &root_dir);
                 stream.write_all(response.as_bytes()).unwrap_or_else(|e| {
-                    eprintln!("Failed to write response: {}", e);
+                    eprintln!("Failed to write response : {}", e);
                 });
             }
         }
@@ -51,7 +51,7 @@ fn handle_client(mut stream: TcpStream, root_dir: Arc<String>) {
 fn handle_request(request: &str, root_dir: &str) -> String {
     let (method, url) = parse_request(request);
     match url {
-        "/" => respond_with_text("Welcome to the HTTP server!"),
+        "/" => respond_with_text("Welcome to the HTTP server"),
         path if path.starts_with("/echo/") => {
             let content = path.trim_start_matches("/echo/");
             respond_with_text(content)
