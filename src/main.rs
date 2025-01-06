@@ -140,7 +140,7 @@ fn respond_with_text(content: &str) -> String {
 }
 fn respond_with_text_and_content_encoding(content: &str,content_encoding: &str) -> String {
     format!(
-        "HTTP/1.1 200 OK\r\nContent-Type: text/plain Content-Encoding: {}\r\nContent-Length: {}\r\n\r\n{}",
+        "HTTP/1.1 200 OK\r\nContent-Type: text/plain \r\nContent-Encoding: {}\r\nContent-Length: {}\r\n\r\n{}",
         content_encoding,
         content.len(),
         content
